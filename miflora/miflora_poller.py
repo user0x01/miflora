@@ -177,16 +177,22 @@ class MiFloraPoller(object):
         bytes 0-1: temperature in 0.1 °C
         byte 2: unknown
         bytes 3-4: brightness in Lux
-        bytes 5-6: unknown
-        byte 7: conductivity in µS/cm
-        byte 8-9: brightness in Lux
+        bytes 5-6: brightness in Lux > 0xffff
+        byte 7: MOISTURE
+        byte 8-9: conductivity in ÂµS/cm
         bytes 10-15: unknown
         """
         data = self._cache
         res = dict()
-        temp, res[MI_LIGHT], res[MI_MOISTURE], res[MI_CONDUCTIVITY] = \
-            unpack('<hxhxxBhxxxxxx', data)
-        res[MI_TEMPERATURE] = temp/10.0
+        if self._firmware_version >= "3.1.8":
+            temp, brne0,brne1,brne2,brne3, res[MI_MOISTURE], res[MI_CONDUCTIVITY] = \
+                unpack('<hxBBBBBhxxxxxx', data)
+            res[MI_TEMPERATURE] = temp/10.0
+            res[MI_LIGHT] = brne0 + brne1 * 0x100 + brne2 * 0x10000
+        else:
+            temp, res[MI_LIGHT], res[MI_MOISTURE], res[MI_CONDUCTIVITY] = \
+                unpack('<hxhxxBhxxxxxx', data)
+            res[MI_TEMPERATURE] = temp/10.0
         return res
 
     @staticmethod
